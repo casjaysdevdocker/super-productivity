@@ -229,10 +229,6 @@ fi
 # Additional predefined variables
 # Runtime sync-provider env vars (read in __pre_execute to seed sync-config-default-override.json)
 APP_PORT="${APP_PORT:-80}"
-WEBDAV_BACKEND="${WEBDAV_BACKEND:-}"
-WEBDAV_BASE_URL="${WEBDAV_BASE_URL:-}"
-WEBDAV_USERNAME="${WEBDAV_USERNAME:-}"
-WEBDAV_SYNC_FOLDER_PATH="${WEBDAV_SYNC_FOLDER_PATH:-}"
 SYNC_INTERVAL="${SYNC_INTERVAL:-}"
 IS_COMPRESSION_ENABLED="${IS_COMPRESSION_ENABLED:-}"
 IS_ENCRYPTION_ENABLED="${IS_ENCRYPTION_ENABLED:-}"
@@ -334,7 +330,6 @@ __update_conf_files() {
   # set hostname
   local sysname="${SERVER_NAME:-${FULL_DOMAIN_NAME:-$HOSTNAME}}"
   local app_port="${APP_PORT:-80}"
-  local webdav_backend="${WEBDAV_BACKEND:-}"
   local wwwroot="${WWW_ROOT_DIR:-/usr/local/share/httpd/default}"
   local nginx_conf
 
@@ -363,23 +358,6 @@ __update_conf_files() {
     echo '        add_header Cache-Control "public, immutable";'
     echo "        access_log off;"
     echo "    }"
-    if [ -n "$webdav_backend" ]; then
-      echo ""
-      echo "    # WebDAV reverse proxy — strips /webdav/ prefix before forwarding"
-      echo "    location = /webdav { return 302 /webdav/; }"
-      echo "    location /webdav/ {"
-      echo "        resolver 127.0.0.11;"
-      echo '        rewrite ^/webdav/(.*)$ /$1 break;'
-      echo "        proxy_pass ${webdav_backend};"
-      echo '        proxy_set_header Host $http_host;'
-      echo '        proxy_set_header X-Real-IP $remote_addr;'
-      echo '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;'
-      echo '        proxy_set_header X-Forwarded-Proto $scheme;'
-      echo '        proxy_pass_header Authorization;'
-      echo "        client_max_body_size 0;"
-      echo "        proxy_request_buffering off;"
-      echo "    }"
-    fi
     echo ""
     echo "    # Health check endpoint used by HEALTHCHECK in Dockerfile"
     echo "    location = /health {"
@@ -418,18 +396,6 @@ __pre_execute() {
   # on startup to pre-populate the sync settings dialog.
   if command -v jq >/dev/null 2>&1; then
     local json="{}"
-
-    # WebDAV sync provider settings (mutually exclusive with SuperSync)
-    if [ -n "${WEBDAV_BASE_URL:-}" ]; then
-      json=$(printf '%s' "$json" | jq '.syncProvider = "WebDAV"')
-      json=$(printf '%s' "$json" | jq --arg v "$WEBDAV_BASE_URL" '.webDav.baseUrl = $v')
-    fi
-    if [ -n "${WEBDAV_USERNAME:-}" ]; then
-      json=$(printf '%s' "$json" | jq --arg v "$WEBDAV_USERNAME" '.webDav.userName = $v')
-    fi
-    if [ -n "${WEBDAV_SYNC_FOLDER_PATH:-}" ]; then
-      json=$(printf '%s' "$json" | jq --arg v "$WEBDAV_SYNC_FOLDER_PATH" '.webDav.syncFolderPath = $v')
-    fi
 
     # SuperSync (super-productivity's own operation-based sync server)
     # SUPERSYNC_BASE_URL overrides the default https://sync.super-productivity.com

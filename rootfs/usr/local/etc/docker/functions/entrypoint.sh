@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
 # - - - - - - - - - - - - - - - - - - - - - - - - -
-##@Version           :  202606261200-git
+##@Version           :  202606261430-git
 # @@Author           :  Jason Hempstead
 # @@Contact          :  git-admin@casjaysdev.pro
 # @@License          :  LICENSE.md
@@ -802,7 +802,7 @@ __set_user_group_id() {
     return 0
   fi
   if [ -z "$set_user" ] || [ "$set_user" = "root" ]; then
-    return
+    return 0
   fi
   if grep -shq "^$set_user:" "/etc/passwd" "/etc/group"; then
     if __check_for_guid "$set_gid"; then
