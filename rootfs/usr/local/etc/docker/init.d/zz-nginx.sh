@@ -578,11 +578,9 @@ EOF
     # - - - - - - - - - - - - - - - - - - - - - - - - -
     __update_ssl_conf_local() { true; }
     # - - - - - - - - - - - - - - - - - - - - - - - - -
+    touch "/config/env/${SERVICE_NAME:-$SCRIPT_NAME}.local.sh" 2>/dev/null || true
   fi
   if ! __file_exists_with_content "/config/env/${SERVICE_NAME:-$SCRIPT_NAME}.sh"; then
-    exitCode=$((exitCode + 1))
-  fi
-  if ! __file_exists_with_content "/config/env/${SERVICE_NAME:-$SCRIPT_NAME}.local.sh"; then
     exitCode=$((exitCode + 1))
   fi
   return $exitCode
@@ -792,8 +790,7 @@ EXEC_CMD_NAME="${EXEC_CMD_BIN##*/}"
 SERVICE_PID_FILE="/run/init.d/$EXEC_CMD_NAME.pid"
 _resolved="$(type -P "$EXEC_CMD_BIN" 2>/dev/null)"
 [ -n "$_resolved" ] && EXEC_CMD_BIN="$_resolved"
-_resolved="$(type -P "$EXEC_PRE_SCRIPT" 2>/dev/null)"
-[ -n "$_resolved" ] && EXEC_PRE_SCRIPT="$_resolved"
+[ -n "$EXEC_PRE_SCRIPT" ] && { _resolved="$(type -P "$EXEC_PRE_SCRIPT" 2>/dev/null)"; [ -n "$_resolved" ] && EXEC_PRE_SCRIPT="$_resolved"; }
 unset _resolved
 # - - - - - - - - - - - - - - - - - - - - - - - - -
 # Only run check when explicitly requested

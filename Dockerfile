@@ -46,7 +46,8 @@ ENV ENV="~/.profile" \
 
 COPY ./rootfs/. /
 
-RUN pkmgr update && pkmgr install bash ca-certificates nginx jq curl && update-ca-certificates
+RUN pkmgr update && pkmgr install bash ca-certificates nginx jq curl && update-ca-certificates && \
+    rm -rf /etc/postfix /etc/ssmtp
 
 ENV SHELL="/bin/bash"
 SHELL ["/bin/bash", "-c"]
