@@ -358,19 +358,26 @@ __update_conf_files() {
     echo "    }"
     echo ""
     echo "    # Cache static assets aggressively"
-    echo '    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map|webp|avif)$ {'
+    echo '    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map|webp|avif|wasm)$ {'
     echo "        expires 1y;"
     echo '        add_header Cache-Control "public, immutable";'
     echo "        access_log off;"
     echo "    }"
     if [ -n "$webdav_backend" ]; then
       echo ""
-      echo "    # WebDAV reverse proxy"
+      echo "    # WebDAV reverse proxy — strips /webdav/ prefix before forwarding"
       echo "    location = /webdav { return 302 /webdav/; }"
       echo "    location /webdav/ {"
       echo "        resolver 127.0.0.11;"
       echo '        rewrite ^/webdav/(.*)$ /$1 break;'
       echo "        proxy_pass ${webdav_backend};"
+      echo '        proxy_set_header Host $http_host;'
+      echo '        proxy_set_header X-Real-IP $remote_addr;'
+      echo '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;'
+      echo '        proxy_set_header X-Forwarded-Proto $scheme;'
+      echo '        proxy_pass_header Authorization;'
+      echo "        client_max_body_size 0;"
+      echo "        proxy_request_buffering off;"
       echo "    }"
     fi
     echo ""
@@ -439,10 +446,14 @@ __pre_execute() {
       json=$(printf '%s' "$json" | jq --argjson v "$sync_ms" '.syncInterval = $v')
     fi
     if [ -n "${IS_COMPRESSION_ENABLED:-}" ]; then
-      json=$(printf '%s' "$json" | jq --argjson v "${IS_COMPRESSION_ENABLED}" '.isCompressionEnabled = $v')
+      local _comp_bool
+      case "${IS_COMPRESSION_ENABLED}" in yes | true | 1) _comp_bool="true" ;; *) _comp_bool="false" ;; esac
+      json=$(printf '%s' "$json" | jq --argjson v "$_comp_bool" '.isCompressionEnabled = $v')
     fi
     if [ -n "${IS_ENCRYPTION_ENABLED:-}" ]; then
-      json=$(printf '%s' "$json" | jq --argjson v "${IS_ENCRYPTION_ENABLED}" '.isEncryptionEnabled = $v')
+      local _enc_bool
+      case "${IS_ENCRYPTION_ENABLED}" in yes | true | 1) _enc_bool="true" ;; *) _enc_bool="false" ;; esac
+      json=$(printf '%s' "$json" | jq --argjson v "$_enc_bool" '.isEncryptionEnabled = $v')
     fi
 
     # Write the file only if at least one setting was injected
